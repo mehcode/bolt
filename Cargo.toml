@@ -1,0 +1,8 @@
+[package]
+name = "bolt"
+version = "0.1.0"
+authors = ["Ryan Leckey <leckey.ryan@gmail.com>"]
+
+[dependencies]
+failure = "0.1"
+colored = "1.6"
