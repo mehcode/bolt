@@ -27,7 +27,7 @@ impl Tokenizer {
 
         Ok(Self {
             stream,
-            location: Location::new(filename, 0, 0),
+            location: Location::new(filename, 1, 1),
         })
     }
 
@@ -53,8 +53,9 @@ impl Tokenizer {
             use colored::Colorize;
 
             eprintln!(
-                "{}: {}",
-                "error".bold().red(),
+                "{} {} {}",
+                format!("{}:", location).to_string().bold().white(),
+                "error:".bold().red(),
                 format!("unknown token: {}", ch).bold().white()
             );
         }
@@ -122,7 +123,7 @@ impl Tokenizer {
             Some(Ok(ch)) => {
                 if ch == '\n' {
                     self.location.line += 1;
-                    self.location.column = 0;
+                    self.location.column = 1;
                 } else {
                     self.location.column += 1;
                 }

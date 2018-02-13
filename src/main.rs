@@ -10,9 +10,9 @@ mod tokenizer;
 use tokenizer::Tokenizer;
 
 fn main() {
-    let mut tokenizer = Tokenizer::new("./scratch.bolt").unwrap();
+    let mut tokenizer = Tokenizer::new("scratch.bolt").unwrap();
 
-    while let Ok(Some(token)) = tokenizer.next() {
-        println!("{:?}", token);
+    while let Ok(Some((location, token))) = tokenizer.next() {
+        println!("{}: {:?}", location, token);
     }
 }
