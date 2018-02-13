@@ -3,7 +3,7 @@ use std::io::{Chars, Read};
 use std::fs::File;
 use failure::Error;
 use location::Location;
-use token::Token;
+use token::{Token, Operator};
 
 macro_rules! try_opt {
     ($e:expr) => (
@@ -44,6 +44,10 @@ impl Tokenizer {
         }
 
         if let Some(token) = self.scan_identifier()? {
+            return Ok(Some((location, token)));
+        }
+
+        if let Some(token) = self.scan_operator()? {
             return Ok(Some((location, token)));
         }
 
@@ -116,6 +120,23 @@ impl Tokenizer {
         }
 
         Ok(Some(Token::Identifier { text }))
+    }
+
+    fn scan_operator(&mut self) -> Result<Option<Token>, Error> {
+        let ch = try_opt!(self.peek_char()?);
+        let op = match ch {
+            '+' => Operator::Plus,
+            '-' => Operator::Minus,
+            '*' => Operator::Star,
+            '/' => Operator::Slash,
+            '%' => Operator::Percent,
+
+            _ => return Ok(None)
+        };
+
+        try_opt!(self.next_char()?);
+
+        Ok(Some(Token::Operator(op)))
     }
 
     fn next_char(&mut self) -> Result<Option<char>, Error> {
