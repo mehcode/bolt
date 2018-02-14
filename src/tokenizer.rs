@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::iter::Peekable;
 use std::io::{Chars, Read};
 use std::fs::File;
@@ -16,6 +17,7 @@ macro_rules! try_opt {
 
 pub struct Tokenizer {
     stream: Peekable<Chars<File>>,
+    queue: VecDeque<(Location, Token)>,
 
     /// Current location (line, column) in the stream.
     location: Location,
@@ -27,11 +29,40 @@ impl Tokenizer {
 
         Ok(Self {
             stream,
+            queue: VecDeque::new(),
             location: Location::new(filename, 1, 1),
         })
     }
 
+    pub fn peek(&mut self) -> Result<Option<(Location, Token)>, Error> {
+        if self.queue.is_empty() {
+            self.read_into()?;
+        }
+
+        if self.queue.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(self.queue[0].clone()))
+        }
+    }
+
     pub fn next(&mut self) -> Result<Option<(Location, Token)>, Error> {
+        if self.queue.is_empty() {
+            self.read_into()?;
+        }
+
+        Ok(self.queue.remove(0))
+    }
+
+    fn read_into(&mut self) -> Result<(), Error> {
+        if let Some((location, token)) = self.read()? {
+            self.queue.push_back((location, token));
+        }
+
+        Ok(())
+    }
+
+    fn read(&mut self) -> Result<Option<(Location, Token)>, Error> {
         self.consume_whitespace()?;
 
         let location = self.location.clone();
@@ -129,7 +160,6 @@ impl Tokenizer {
             '-' => Operator::Minus,
             '*' => Operator::Star,
             '/' => Operator::Slash,
-            '%' => Operator::Percent,
 
             _ => return Ok(None)
         };
