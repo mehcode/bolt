@@ -6,3 +6,4 @@ authors = ["Ryan Leckey <leckey.ryan@gmail.com>"]
 [dependencies]
 failure = "0.1"
 colored = "1.6"
+xml-rs = "0.7"

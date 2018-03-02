@@ -1,7 +1,7 @@
-use node::{Node, Expression, Literal, BinaryOperation};
-use failure::{Error, err_msg};
+use node::{BinaryOperation, Expression, Literal, Node};
+use failure::{err_msg, Error};
 use tokenizer::Tokenizer;
-use token::{Token, Operator};
+use token::{Operator, Token};
 
 pub struct Parser {
     tokenizer: Tokenizer,
@@ -32,8 +32,14 @@ impl Parser {
         }
     }
 
-    pub fn parse_binary_expression(&mut self, operand: Expression, power: u32) -> Result<Option<Expression>, Error> {
-        let op = if let Some((_, Token::Operator(op))) = self.tokenizer.peek()? { op } else {
+    pub fn parse_binary_expression(
+        &mut self,
+        operand: Expression,
+        power: u32,
+    ) -> Result<Option<Expression>, Error> {
+        let op = if let Some((_, Token::Operator(op))) = self.tokenizer.peek()? {
+            op
+        } else {
             // FIXME: Error message here
             unreachable!();
         };
@@ -49,7 +55,7 @@ impl Parser {
         };
 
         if op_power < power {
-            return Ok(None)
+            return Ok(None);
         }
 
         self.tokenizer.next()?;
@@ -57,36 +63,28 @@ impl Parser {
         let operand_right = self.parse_expression(op_power + op_assoc)?;
 
         Ok(Some(match op {
-            Operator::Plus => {
-                Expression::BinaryOperation(BinaryOperation::Add(
-                    box Node::Expression(operand),
-                    box Node::Expression(operand_right),
-                ))
-            },
+            Operator::Plus => Expression::BinaryOperation(BinaryOperation::Add(
+                box Node::Expression(operand),
+                box Node::Expression(operand_right),
+            )),
 
-            Operator::Minus => {
-                Expression::BinaryOperation(BinaryOperation::Subtract(
-                    box Node::Expression(operand),
-                    box Node::Expression(operand_right),
-                ))
-            },
+            Operator::Minus => Expression::BinaryOperation(BinaryOperation::Subtract(
+                box Node::Expression(operand),
+                box Node::Expression(operand_right),
+            )),
 
-            Operator::Star => {
-                Expression::BinaryOperation(BinaryOperation::Multiply(
-                    box Node::Expression(operand),
-                    box Node::Expression(operand_right),
-                ))
-            },
+            Operator::Star => Expression::BinaryOperation(BinaryOperation::Multiply(
+                box Node::Expression(operand),
+                box Node::Expression(operand_right),
+            )),
 
-            Operator::Slash => {
-                Expression::BinaryOperation(BinaryOperation::Divide(
-                    box Node::Expression(operand),
-                    box Node::Expression(operand_right),
-                ))
-            },
+            Operator::Slash => Expression::BinaryOperation(BinaryOperation::Divide(
+                box Node::Expression(operand),
+                box Node::Expression(operand_right),
+            )),
 
             // FIXME: Error message here
-            _ => unreachable!()
+            _ => unreachable!(),
         }))
     }
 
@@ -96,7 +94,7 @@ impl Parser {
         loop {
             let (_, tok) = match self.tokenizer.peek()? {
                 Some(tok) => tok,
-                None => break
+                None => break,
             };
 
             if let Some(operand) = expr.clone().take() {
@@ -104,15 +102,15 @@ impl Parser {
                     if let Some(result) = self.parse_binary_expression(operand, power)? {
                         expr = Some(result);
 
-                        continue
+                        continue;
                     } else {
                         // Precedence rules say that we should not attempt to combine with
                         // the next operator
-                        break
+                        break;
                     }
-                } else  {
+                } else {
                     // Not a binary operator; we're done
-                    break
+                    break;
                 }
             }
 

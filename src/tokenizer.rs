@@ -4,7 +4,7 @@ use std::io::{Chars, Read};
 use std::fs::File;
 use failure::Error;
 use location::Location;
-use token::{Token, Operator};
+use token::{Operator, Token};
 
 macro_rules! try_opt {
     ($e:expr) => (
@@ -161,7 +161,7 @@ impl Tokenizer {
             '*' => Operator::Star,
             '/' => Operator::Slash,
 
-            _ => return Ok(None)
+            _ => return Ok(None),
         };
 
         try_opt!(self.next_char()?);
