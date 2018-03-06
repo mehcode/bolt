@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Add location="scratch.bolt:1:1">
+  <Subtract location="scratch.bolt:1:1">
+    <Add location="scratch.bolt:1:1">
+      <Integer location="scratch.bolt:1:1">12</Integer>
+      <Divide location="scratch.bolt:1:6">
+        <Multiply location="scratch.bolt:1:6">
+          <Integer location="scratch.bolt:1:6">512</Integer>
+          <Integer location="scratch.bolt:1:12">371</Integer>
+        </Multiply>
+        <Integer location="scratch.bolt:1:18">12</Integer>
+      </Divide>
+    </Add>
+    <Divide location="scratch.bolt:1:23">
+      <Integer location="scratch.bolt:1:23">130</Integer>
+      <Integer location="scratch.bolt:1:29">31</Integer>
+    </Divide>
+  </Subtract>
+  <Multiply location="scratch.bolt:1:34">
+    <Integer location="scratch.bolt:1:34">31</Integer>
+    <Integer location="scratch.bolt:1:39">472</Integer>
+  </Multiply>
+</Add>

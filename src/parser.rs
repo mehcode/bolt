@@ -1,7 +1,7 @@
-use node::{BinaryOperation, Expression, Literal, Node};
 use failure::{err_msg, Error};
 use tokenizer::Tokenizer;
 use token::{Operator, Token};
+use ast::*;
 
 pub struct Parser {
     tokenizer: Tokenizer,
@@ -12,18 +12,22 @@ impl Parser {
         Self { tokenizer }
     }
 
-    pub fn parse(&mut self) -> Result<Node, Error> {
-        Ok(Node::Expression(self.parse_expression(0)?))
+    pub fn parse(&mut self) -> Result<Box<Expression>, Error> {
+        Ok(Box::new(self.parse_expression(0)?))
     }
 
     pub fn parse_primary_expression(&mut self) -> Result<Expression, Error> {
         match self.tokenizer.next()? {
-            Some((_, Token::Integer { value, .. })) => {
-                // FIXME: Base conversion
-                let lit = Literal::Integer { value };
+            Some((location, Token::Integer { value, .. })) => {
+                Ok(Expression {
+                    node: ExpressionKind::Literal(Box::new(Literal {
+                        node: LiteralKind::Integer(value),
+                        location: location.clone(),
+                    })),
 
-                Ok(Expression::Literal(lit))
-            }
+                    location,
+                })
+            },
 
             _ => {
                 // FIXME: Better error message
@@ -62,29 +66,19 @@ impl Parser {
 
         let operand_right = self.parse_expression(op_power + op_assoc)?;
 
-        Ok(Some(match op {
-            Operator::Plus => Expression::BinaryOperation(BinaryOperation::Add(
-                box Node::Expression(operand),
-                box Node::Expression(operand_right),
-            )),
-
-            Operator::Minus => Expression::BinaryOperation(BinaryOperation::Subtract(
-                box Node::Expression(operand),
-                box Node::Expression(operand_right),
-            )),
-
-            Operator::Star => Expression::BinaryOperation(BinaryOperation::Multiply(
-                box Node::Expression(operand),
-                box Node::Expression(operand_right),
-            )),
-
-            Operator::Slash => Expression::BinaryOperation(BinaryOperation::Divide(
-                box Node::Expression(operand),
-                box Node::Expression(operand_right),
-            )),
+        let operation = match op {
+            Operator::Plus => BinaryOperation::Add,
+            Operator::Minus => BinaryOperation::Subtract,
+            Operator::Star => BinaryOperation::Multiply,
+            Operator::Slash => BinaryOperation::Divide,
 
             // FIXME: Error message here
             _ => unreachable!(),
+        };
+
+        Ok(Some(Expression {
+            location: operand.location.clone(),
+            node: ExpressionKind::Binary(operation, Box::new(operand), Box::new(operand_right)),
         }))
     }
 
