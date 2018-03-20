@@ -53,9 +53,6 @@ impl Parser {
             Operator::Slash => (1900, 1),
             Operator::Plus => (1800, 1),
             Operator::Minus => (1800, 1),
-
-            // FIXME: Error message here
-            _ => unreachable!(),
         };
 
         if op_power < power {
@@ -71,9 +68,6 @@ impl Parser {
             Operator::Minus => BinaryOperation::Subtract,
             Operator::Star => BinaryOperation::Multiply,
             Operator::Slash => BinaryOperation::Divide,
-
-            // FIXME: Error message here
-            _ => unreachable!(),
         };
 
         Ok(Some(Expression {

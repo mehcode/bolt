@@ -14,11 +14,14 @@ mod symbol;
 use tokenizer::Tokenizer;
 use parser::Parser;
 use xml::EmitterConfig;
-use std::io::{self, Write};
+use std::io;
 use ast::Serialize;
+use std::env;
 
 fn main() {
-    let tokenizer = Tokenizer::new("scratch.bolt").unwrap();
+    let argv: Vec<_> = env::args().collect();
+
+    let tokenizer = Tokenizer::new(&argv[1]).unwrap();
     let mut parser = Parser::new(tokenizer);
 
     let node = parser.parse().unwrap();
