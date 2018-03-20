@@ -1,6 +1,6 @@
-use failure::{err_msg, Error};
+use failure::Error;
 use tokenizer::Tokenizer;
-use token::{Operator, Token};
+use token::{Operator, TokenKind};
 use ast::*;
 
 pub struct Parser {
@@ -17,21 +17,20 @@ impl Parser {
     }
 
     pub fn parse_primary_expression(&mut self) -> Result<Expression, Error> {
-        match self.tokenizer.next()? {
-            Some((location, Token::Integer { value, .. })) => {
-                Ok(Expression {
-                    node: ExpressionKind::Literal(Box::new(Literal {
-                        node: LiteralKind::Integer(value),
-                        location: location.clone(),
-                    })),
+        let token = self.tokenizer.next()?;
+        match token.kind {
+            TokenKind::Integer { value, .. } => Ok(Expression {
+                node: ExpressionKind::Literal(Box::new(Literal {
+                    node: LiteralKind::Integer(value),
+                    location: token.location.clone(),
+                })),
 
-                    location,
-                })
-            },
+                location: token.location,
+            }),
 
             _ => {
                 // FIXME: Better error message
-                Err(err_msg("error: unexpected end of stream"))
+                Err(format_err!("expected expression, found `{:?}`", token.kind))
             }
         }
     }
@@ -41,7 +40,7 @@ impl Parser {
         operand: Expression,
         power: u32,
     ) -> Result<Option<Expression>, Error> {
-        let op = if let Some((_, Token::Operator(op))) = self.tokenizer.peek()? {
+        let op = if let TokenKind::Operator(op) = self.tokenizer.peek()?.kind {
             op
         } else {
             // FIXME: Error message here
@@ -80,13 +79,10 @@ impl Parser {
         let mut expr = None;
 
         loop {
-            let (_, tok) = match self.tokenizer.peek()? {
-                Some(tok) => tok,
-                None => break,
-            };
+            let tok = self.tokenizer.peek()?;
 
             if let Some(operand) = expr.clone().take() {
-                if tok.is_binary_operator() {
+                if tok.kind.is_binary_operator() {
                     if let Some(result) = self.parse_binary_expression(operand, power)? {
                         expr = Some(result);
 
@@ -108,8 +104,10 @@ impl Parser {
         if let Some(expr) = expr {
             Ok(expr)
         } else {
-            // FIXME: Proper error message
-            Err(err_msg("expected expression; found ?"))
+            Err(format_err!(
+                "expected expression; found `{:?}`",
+                self.tokenizer.peek()?.kind
+            ))
         }
     }
 }

@@ -1,3 +1,17 @@
+use location::Location;
+
+#[derive(Debug, Clone)]
+pub struct Token {
+    pub location: Location,
+    pub kind: TokenKind,
+}
+
+impl Token {
+    pub fn new(location: Location, kind: TokenKind) -> Self {
+        Self { location, kind }
+    }
+}
+
 // TODO: Symbol can evolve into an interned string type
 pub type Symbol = String;
 
@@ -10,19 +24,20 @@ pub enum Operator {
 }
 
 #[derive(Clone, Debug)]
-pub enum Token {
+pub enum TokenKind {
+    EndOfFile,
     Identifier { text: Symbol },
     Integer { value: Symbol, radix: u8 },
     Operator(Operator),
 }
 
-impl Token {
+impl TokenKind {
     pub fn is_binary_operator(&self) -> bool {
         match *self {
-            Token::Operator(Operator::Plus)
-            | Token::Operator(Operator::Minus)
-            | Token::Operator(Operator::Slash)
-            | Token::Operator(Operator::Star) => true,
+            TokenKind::Operator(Operator::Plus)
+            | TokenKind::Operator(Operator::Minus)
+            | TokenKind::Operator(Operator::Slash)
+            | TokenKind::Operator(Operator::Star) => true,
 
             _ => false,
         }

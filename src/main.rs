@@ -1,6 +1,7 @@
 #![feature(io, match_default_bindings, box_syntax)]
 
 extern crate colored;
+#[macro_use]
 extern crate failure;
 extern crate xml;
 

@@ -1,10 +1,11 @@
+use std::fmt::{self, Display};
 use std::collections::VecDeque;
 use std::iter::Peekable;
 use std::io::{Chars, Read};
 use std::fs::File;
 use failure::Error;
 use location::Location;
-use token::{Operator, Token};
+use token::{Operator, Token, TokenKind};
 
 macro_rules! try_opt {
     ($e:expr) => (
@@ -15,9 +16,27 @@ macro_rules! try_opt {
     )
 }
 
+#[derive(Debug, Fail)]
+pub enum TokenizerError {
+    UnknownToken(Location, char),
+}
+
+impl Display for TokenizerError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            TokenizerError::UnknownToken(ref location, ch) => {
+                write!(f, "{}: ", location)?;
+                write!(f, "unknown token: `{}`", ch)?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
 pub struct Tokenizer {
     stream: Peekable<Chars<File>>,
-    queue: VecDeque<(Location, Token)>,
+    queue: VecDeque<Token>,
 
     /// Current location (line, column) in the stream.
     location: Location,
@@ -34,68 +53,54 @@ impl Tokenizer {
         })
     }
 
-    pub fn peek(&mut self) -> Result<Option<(Location, Token)>, Error> {
+    pub fn peek(&mut self) -> Result<Token, Error> {
         if self.queue.is_empty() {
-            self.read_into()?;
+            self.advance()?;
         }
 
         if self.queue.is_empty() {
-            Ok(None)
+            Ok(Token::new(self.location.clone(), TokenKind::EndOfFile))
         } else {
-            Ok(Some(self.queue[0].clone()))
+            Ok(self.queue[0].clone())
         }
     }
 
-    pub fn next(&mut self) -> Result<Option<(Location, Token)>, Error> {
+    pub fn next(&mut self) -> Result<Token, Error> {
         if self.queue.is_empty() {
-            self.read_into()?;
+            self.advance()?;
         }
 
-        Ok(self.queue.remove(0))
+        if let Some(token) = self.queue.remove(0) {
+            Ok(token)
+        } else {
+            Ok(Token::new(self.location.clone(), TokenKind::EndOfFile))
+        }
     }
 
-    fn read_into(&mut self) -> Result<(), Error> {
-        if let Some((location, token)) = self.read()? {
-            self.queue.push_back((location, token));
-        }
+    fn advance(&mut self) -> Result<(), Error> {
+        let token = {
+            self.consume_whitespace()?;
+            // TODO: Consume comments
+
+            let location = self.location.clone();
+
+            // TODO: Collapse scanning routines
+            if let Some(kind) = self.scan_numeric()? {
+                Token::new(location, kind)
+            } else if let Some(kind) = self.scan_identifier()? {
+                Token::new(location, kind)
+            } else if let Some(kind) = self.scan_operator()? {
+                Token::new(location, kind)
+            } else if let Some(ch) = self.next_char()? {
+                return Err(TokenizerError::UnknownToken(location, ch).into());
+            } else {
+                return Ok(());
+            }
+        };
+
+        self.queue.push_back(token);
 
         Ok(())
-    }
-
-    fn read(&mut self) -> Result<Option<(Location, Token)>, Error> {
-        self.consume_whitespace()?;
-
-        let location = self.location.clone();
-
-        // TODO: Consume comments
-        // TODO: Collapse scanning routines
-
-        if let Some(token) = self.scan_numeric()? {
-            return Ok(Some((location, token)));
-        }
-
-        if let Some(token) = self.scan_identifier()? {
-            return Ok(Some((location, token)));
-        }
-
-        if let Some(token) = self.scan_operator()? {
-            return Ok(Some((location, token)));
-        }
-
-        // TODO: Error on unexpected character
-        if let Some(ch) = self.next_char()? {
-            // TODO: Use log
-            use colored::Colorize;
-
-            eprintln!(
-                "{} {} {}",
-                format!("{}:", location).to_string().bold().white(),
-                "error:".bold().red(),
-                format!("unknown token: {}", ch).bold().white()
-            );
-        }
-
-        Ok(None)
     }
 
     fn consume_whitespace(&mut self) -> Result<(), Error> {
@@ -110,7 +115,7 @@ impl Tokenizer {
         Ok(())
     }
 
-    fn scan_numeric(&mut self) -> Result<Option<Token>, Error> {
+    fn scan_numeric(&mut self) -> Result<Option<TokenKind>, Error> {
         if !try_opt!(self.peek_char()?).is_ascii_digit() {
             return Ok(None);
         }
@@ -129,10 +134,10 @@ impl Tokenizer {
             }
         }
 
-        Ok(Some(Token::Integer { value, radix: 10 }))
+        Ok(Some(TokenKind::Integer { value, radix: 10 }))
     }
 
-    fn scan_identifier(&mut self) -> Result<Option<Token>, Error> {
+    fn scan_identifier(&mut self) -> Result<Option<TokenKind>, Error> {
         let ch = try_opt!(self.peek_char()?);
         if !(ch.is_ascii_alphanumeric() || ch == '_') {
             return Ok(None);
@@ -150,10 +155,10 @@ impl Tokenizer {
             }
         }
 
-        Ok(Some(Token::Identifier { text }))
+        Ok(Some(TokenKind::Identifier { text }))
     }
 
-    fn scan_operator(&mut self) -> Result<Option<Token>, Error> {
+    fn scan_operator(&mut self) -> Result<Option<TokenKind>, Error> {
         let ch = try_opt!(self.peek_char()?);
         let op = match ch {
             '+' => Operator::Plus,
@@ -166,7 +171,7 @@ impl Tokenizer {
 
         try_opt!(self.next_char()?);
 
-        Ok(Some(Token::Operator(op)))
+        Ok(Some(TokenKind::Operator(op)))
     }
 
     fn next_char(&mut self) -> Result<Option<char>, Error> {
