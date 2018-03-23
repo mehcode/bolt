@@ -2,14 +2,16 @@ use failure::Error;
 use tokenizer::Tokenizer;
 use token::{Operator, TokenKind};
 use ast::*;
+use log::Log;
 
 pub struct Parser {
     tokenizer: Tokenizer,
+    log: Log,
 }
 
 impl Parser {
     pub fn new(tokenizer: Tokenizer) -> Self {
-        Self { tokenizer }
+        Self { log: tokenizer.log().clone(), tokenizer }
     }
 
     pub fn parse(&mut self) -> Result<Box<Expression>, Error> {

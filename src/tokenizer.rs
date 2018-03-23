@@ -6,6 +6,7 @@ use std::fs::File;
 use failure::Error;
 use location::Location;
 use token::{Operator, Token, TokenKind};
+use log::Log;
 
 macro_rules! try_opt {
     ($e:expr) => (
@@ -17,40 +18,32 @@ macro_rules! try_opt {
 }
 
 #[derive(Debug, Fail)]
-pub enum TokenizerError {
-    UnknownToken(Location, char),
-}
-
-impl Display for TokenizerError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            TokenizerError::UnknownToken(ref location, ch) => {
-                write!(f, "{}: ", location)?;
-                write!(f, "unknown token: `{}`", ch)?;
-            }
-        }
-
-        Ok(())
-    }
-}
+#[fail(display = "unknown token")]
+struct ErrorUnknownToken;
 
 pub struct Tokenizer {
     stream: Peekable<Chars<File>>,
     queue: VecDeque<Token>,
+    log: Log,
 
     /// Current location (line, column) in the stream.
     location: Location,
 }
 
 impl Tokenizer {
-    pub fn new(filename: &str) -> Result<Self, Error> {
+    pub fn new(filename: &str, log: &Log) -> Result<Self, Error> {
         let stream = File::open(filename)?.chars().peekable();
 
         Ok(Self {
             stream,
+            log: log.filename(filename),
             queue: VecDeque::new(),
-            location: Location::new(filename, 1, 1),
+            location: Location::new(1, 1),
         })
+    }
+
+    pub fn log(&self) -> &Log {
+        &self.log
     }
 
     pub fn peek(&mut self) -> Result<Token, Error> {
@@ -84,7 +77,6 @@ impl Tokenizer {
 
             let location = self.location.clone();
 
-            // TODO: Collapse scanning routines
             if let Some(kind) = self.scan_numeric()? {
                 Token::new(location, kind)
             } else if let Some(kind) = self.scan_identifier()? {
@@ -92,7 +84,9 @@ impl Tokenizer {
             } else if let Some(kind) = self.scan_operator()? {
                 Token::new(location, kind)
             } else if let Some(ch) = self.next_char()? {
-                return Err(TokenizerError::UnknownToken(location, ch).into());
+                self.log.error(location, format!("unknown start of token: {}", ch));
+
+                return Err(ErrorUnknownToken.into());
             } else {
                 return Ok(());
             }
