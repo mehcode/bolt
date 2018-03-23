@@ -1,4 +1,4 @@
-#![feature(io, box_syntax)]
+#![feature(io)]
 
 extern crate colored;
 #[macro_use]
