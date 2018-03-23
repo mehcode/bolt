@@ -1,4 +1,4 @@
-#![feature(io, match_default_bindings, box_syntax)]
+#![feature(io, box_syntax)]
 
 extern crate colored;
 #[macro_use]

@@ -67,7 +67,7 @@ impl Serialize for Expression {
             }
 
             ExpressionKind::Binary(ref operation, ref a, ref b) => {
-                let op_name = match operation {
+                let op_name = match *operation {
                     BinaryOperation::Add => "Add",
                     BinaryOperation::Subtract => "Subtract",
                     BinaryOperation::Multiply => "Multiply",
